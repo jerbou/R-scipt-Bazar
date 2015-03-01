@@ -1,0 +1,94 @@
+# TRavail sur le kernel de l'Aigle de Bonneli
+library(reshape2)
+library(adehabitatHR)
+library(maptools)
+library(sp)
+library(rgdal)
+library(ggplot2)
+library(RColorBrewer)
+
+# Définition de mon dossier de travail
+setwd("F:/03_script_RESSOURCE/Analyse_spatial_Qigs_R/")
+
+# Chargement du fichier recu
+aigle<-read.table("VHF-GPS_Aigle_v_30-06-2014.csv",sep = ",",header=T,dec = ",")
+#aigle<-read.table("VHF-GPS_Aigle_v_30-06-2014_V3.csv",header=T,sep=";",dec=".")
+
+
+# ============= Utilisation de Rgdal ======================
+# list des shapefiles présents
+# dsn : l'objet correspondant aux dossier de travail
+dsn<-getwd()
+ogrListLayers(dsn)
+
+# Chargement d'un shapefile
+aigle_pt<-readOGR(dsn=dsn,layer="points_aigle")
+
+
+# Erreur dans .checkNumericCoerce2double(obj) :
+#  cannot retrieve coordinates from non-numeric elements
+
+aigle<-as.data.frame(aigle)
+
+
+aigle[,1]<-as.double(aigle[,1])
+aigle[,2]<-as.double(aigle[,2])
+
+# Problème de chargement... On passe à read.delim2
+# Pas mieux, on réécrit le fichier original,
+
+# attach du fichier / Mise en mémoire
+attach(aigle)
+aiglespatial<-SpatialPoints(aigle)
+
+aiglespat<-SpatialPoints(aigle_pt)
+
+# Voir libraire kernelUD
+
+aigleKN_HREF<-kernelUD(aiglespatial, h="href")
+aigleKN_HREF2<-kernelUD(aiglespatial, h="href",grid=10)
+
+
+aigleKN_HREF4<-kernelUD(aiglespat, h="href",grid=50)
+homerange90HREF4<-getverticeshr(aigleKN_HREF4,percent=90)
+
+aigleKN_HREF3<-kernelUD(aiglespat, h="href",grid=500)
+homerange90HREF3<-getverticeshr(aigleKN_HREF3,percent=90)
+homerange80HREF3<-getverticeshr(aigleKN_HREF3,percent=80)
+homerange70HREF3<-getverticeshr(aigleKN_HREF3,percent=70)
+homerange60HREF3<-getverticeshr(aigleKN_HREF3,percent=60)
+
+aigleKN_LSCV<-kernelUD(aiglespat, h="LSCV",grid=500)
+homerange90LSCV<-getverticeshr(aigleKN_LSCV,percent=90)
+homerange80LSCV<-getverticeshr(aigleKN_LSCV,percent=80)
+homerange70LSCV<-getverticeshr(aigleKN_LSCV,percent=70)
+homerange60LSCV<-getverticeshr(aigleKN_LSCV,percent=60)
+mcp95<-mcp(aiglespat,percent=95
+
+
+# border pour la bordrue, col pour la surface
+plot(aiglespat,pch=3,axes=T)
+plot(add=TRUE,homerange90HREF3,col="darkorange",axes=T,main="HomeRangeKernel \n sur données d'Aigle de Bonneli")
+plot(homerange80HREF3,add=TRUE,col="firebrick1")
+plot(homerange70HREF3,add=TRUE,col="firebrick3")
+plot(homerange60HREF3,add=TRUE,col="darkred")
+plot(aiglespat,pch=3,add=TRUE,axes=T)
+plot(homerange90LSCV,add=TRUE,border="dodgerblue4",lwd=2)
+plot(homerange80LSCV,add=TRUE,border="dodgerblue3",lwd=2)
+plot(homerange70LSCV,add=TRUE,border="dodgerblue2",lwd=2)
+plot(homerange60LSCV,add=TRUE,border="dodgerblue",lwd=2,main="HomeRangeKernel \n sur données d'Aigle de Bonneli")
+legend("topright",legend=c("HREF 90","HREF 80","HREF 70","HREF 60","LSCV 90","LSCV 80","LSCV 70","LSCV 60","localisation"),col=c("darkorange","firebrick1","firebrick3","darkred","dodgerblue4","dodgerblue3","dodgerblue2","dodgerblue","black"),pch=15)
+
+
+dd<-density(aigle)
+
+d <- density(faithful$eruptions, bw = "sj")
+
+
+fe <- sort(faithful$eruptions) # has quite a few non-unique values
+dw <- density(unique(fe), weights = table(fe)/length(fe), bw = d$bw)
+utils::str(dw) ## smaller n: only 126, but identical estimate:
+x <- xx <- faithful$eruptions
+fit <- density(xx)
+plot(fit)
+lines(density(x.new), col = "blue")
