@@ -1,0 +1,170 @@
+# === Toutes mes fonctions utiles ===
+# 
+# ==== Connexion aux bdd ====
+# Connexion à une bdd ACCESS
+odbcCloseAll()
+db <- "S:/SIG_ADMIN/MAJ/site_cadastre/Sites_cadastre.mdb"
+db_TDB <- "S:/00_BASES_DE_DONNEES/BDD_Tableau_de_Bord/BD_Tableau_de_Bord.mdb"
+# db_fon<-"S:/00_BASES_DE_DONNEES/BD_FONCIER/BD_Foncier.mdb"
+channel <- odbcConnectAccess(db)
+channel_TDB <- odbcConnectAccess(db_TDB)
+# ! a vÃ©rifier les requetes
+Sites<-sqlFetch(channel=channel,sqtable="RQ_Sites_S")
+Sites_CEN<-sqlFetch(channel=channel,sqtable="RQ_Sites_S_No_sissonne")
+
+# Connexion à une bdd MySQL
+# On va chercher le ref faune pour faire une jointure
+Connex<-odbcConnect(dsn="bd_faune_flore",uid="util",pwd="csnp")
+# odbcDataSources(type = ("all"))
+
+# Voir les tables de la connexion
+sqlTables(Connex)
+
+
+# Pour postgreSQL
+# http://neocarto.hypotheses.org/1186
+con <- dbConnect(dbDriver("PostgreSQL"), host="192.168.1.2", port="5432",dbname="EUPHORBE", user="postgres", pass="burotec")
+dsn="PG:host='192.168.1.2', port='5432', dbname='EUPHORBE', user='postgres', pass='burotec'"
+readOGR(dsn,"travaux_surf")
+
+# lister les tables présentes dans la bdd
+dbListTables(con)
+readGDAL(dsn=con,"travaux_surf")
+
+
+# ==== Les REQUETES ====
+# ref<-sqlFetch(Connex,sql)
+sql<- "SELECT * FROM w_ref_faune WHERE w_ref_faune.famille ='Syrphidae'"
+# Le rÃ©fÃ©rentiel famille syrphidae
+SYRPH <- sqlQuery(Connex, sql)
+
+# On étiquette les noms des sp
+rownames(traits.PCA)<-traits[,1]
+
+# Changer le nom d'une colonne dans un df
+names(MOR)[names(MOR)=="Apb_Moreuil_14.08.2013"]<-"Apb_Moreuil_14/08/2013"
+
+# ==== Gestion d objets ====
+
+rm(list=ls()) #will remove ALL objects
+
+# Selection crÃ©ation d'un nouvel objet
+df3<-subset(df2,select = -c(releve,ferti,fauche,MAEt))
+
+# Selection d'un tableau avec certaine colonnes
+Gbin2 <-Gbin1[c("individu","depX","depY","arX","arY","ind_pos.x","ind_pos.y")]
+
+# On nettoie les NA
+# On nettoie
+e41[is.na(e41)]<-0
+
+# Transofmation 
+# Ajout d'une nouvelle colonne
+BIM<-transform(BIM,"CATEGORIE"=paste(TYPE_MILIEUX_RA,variable,sep="_"))
+
+# tranformation avec une condition
+V_env<-transform(V_env,"etat_num"= ifelse(Etat=="B",1,0))
+
+
+#
+citation(package="reshape2")
+citation(package="ggplot2")
+citation(package="rgdal")
+citation(package="xlsx")
+citation(package="plyr")
+
+# ==== Gestion des valeurs ====
+
+# On change TOUTES LES valeurs 2 en un 1
+rex2[rex2=="2"]<-1
+
+# Autre méhode avec une fonction ifelse
+# http://stackoverflow.com/questions/23355806/invalid-factor-level-na-generated-r
+FLORE_IG2$code <- ifelse(FLORE_IG2$taxon=="Dactylorhiza majalis (Reichenb.) P.F. Hunt et Summerh.","Dmj",0)
+
+# Avec méthode gsub
+# http://stackoverflow.com/questions/5487164/r-how-to-replace-parts-of-variable-strings-within-data-frame
+CD13<-as.data.frame(sapply(CD12,gsub,pattern="/0",replacement=""))
+
+
+# Changement d'odre
+# Réordonner selon plusieurs colonnes
+# http://www.markhneedham.com/blog/2013/01/23/r-ordering-rows-in-a-data-frame-by-multiple-columns/
+BICO<-BIC[with(BIC, order (TYPE_MILIEUX_RA,variable)),]
+
+# On réordonne
+BICO<-BIC[order
+          (factor
+           (BIC$variable,
+            levels=c("SURF_GESTION.sum","SURF_ASSIST.sum"))),]
+
+
+# Permet de créer une table avec les valeurs uniques de la colonne du df RD6
+df7<-as.data.frame(unique(RD6$Parcelle))
+
+
+
+
+# ==== Sémiologie / Mise en couleur ====
+# http://www.r-bloggers.com/r-using-rcolorbrewer-to-colour-your-figures-in-r/
+
+# === AFFICHAGE ===
+# découper la fenetre graphique en sous fenetres
+par(mfrow = c(3,3))
+
+# === Passage d'une matrice abondance à une matrice de presence absence
+# http://stackoverflow.com/questions/14526429/turn-a-count-matrix-into-a-binary-existence-matrix
+Rpres<- as.matrix((Rphy3b > 0) + 0)
+
+# === Impresssion raster, Export sous forme d'image ici en PDF
+pdf("dendro_releve.pdf", width = 16.53, height=11.65)
+plot(hclust(vegdist(Rpres3,method="jaccard"),method="ward.D2"),cex=0.5,hang=0.25,main="CASDAR 2015 Dendrogramme \n sur relevés de Camille Delaplace",ylab="Distance de Similarité")
+
+
+# ==== Librairie plyr ====
+# Créer des sous data frame ($sp) au sein d'un data frame
+testlist <- dlply(iris, .(Species))
+
+testlist2<-dlply(FLORE_IG, .(nomsitep))
+
+# ==== Exporter des csv autant de valeur unique, ici nomsite ====
+# Fonction pour créer autant de csv que d'occurence ici, nomsitep
+# https://ariel85fuentes.wordpress.com/2014/12/29/writing-multiple-csv-files-from-a-xlsx/
+d_ply(FLORE_IG, .(IDENT_SITE),function(sdf) write.csv(sdf,file=paste(sdf$IDENT_SITE[[1]],".csv",sep="")))
+
+
+# ==== Analyse de données ====
+
+# AFFicher de l'ACP avec ggplot
+# http://stackoverflow.com/questions/6578355/plotting-pca-biplot-with-ggplot2
+# http://stackoverflow.com/questions/30056144/r-ggfortify-objects-of-type-prcomp-not-supported-by-autoplot
+
+PCbiplot <- function(PC, x="PC1", y="PC2") {
+  # PC being a prcomp object
+  data <- data.frame(obsnames=row.names(PC$x), PC$x)
+  plot <- ggplot(data, aes_string(x=x, y=y)) + geom_text(alpha=.4, size=3, aes(label=obsnames))
+  plot <- plot + geom_hline(aes(0), size=.2) + geom_vline(aes(0), size=.2)
+  datapc <- data.frame(varnames=rownames(PC$rotation), PC$rotation)
+  mult <- min(
+    (max(data[,y]) - min(data[,y])/(max(datapc[,y])-min(datapc[,y]))),
+    (max(data[,x]) - min(data[,x])/(max(datapc[,x])-min(datapc[,x])))
+  )
+  datapc <- transform(datapc,
+                      v1 = .7 * mult * (get(x)),
+                      v2 = .7 * mult * (get(y))
+  )
+  plot <- plot + coord_equal() + geom_text(data=datapc, aes(x=v1, y=v2, label=varnames), size = 5, vjust=1, color="red")
+  plot <- plot + geom_segment(data=datapc, aes(x=0, y=0, xend=v1, yend=v2), arrow=arrow(length=unit(0.2,"cm")), alpha=0.75, color="red")
+  plot
+}
+
+
+# Multiplot on ggplot2
+# http://www.sthda.com/english/wiki/ggplot2-multiplot-put-multiple-graphs-on-the-same-page-using-ggplot2
+install_github("easyGgplot2", "kassambara")
+library(easyGgplot2)
+
+library(devtools)
+install_github('sinhrks/ggfortify')
+library(ggfortify)
+
