@@ -1,6 +1,6 @@
-# === Toutes mes fonctions utiles ===
+# === Toutes les fonctions utiles dans R pour travailler ===
 # 
-# ==== Connexion aux bdd ====
+# ==== 01: Connexion aux bdd ====
 # Connexion à une bdd ACCESS
 odbcCloseAll()
 db <- "S:/SIG_ADMIN/MAJ/site_cadastre/Sites_cadastre.mdb"
@@ -31,8 +31,13 @@ readOGR(dsn,"travaux_surf")
 dbListTables(con)
 readGDAL(dsn=con,"travaux_surf")
 
+# SAuvegarder entre R et PostGreSQL
+# https://claudiavitolo.com/2012/07/05/writing-tables-into-a-postgresql-database-using-r/
+# http://stackoverflow.com/questions/10032390/writing-to-specific-schemas-with-rpostgresql
 
-# ==== Les REQUETES ====
+
+
+# ==== 02: Les REQUETES ====
 # ref<-sqlFetch(Connex,sql)
 sql<- "SELECT * FROM w_ref_faune WHERE w_ref_faune.famille ='Syrphidae'"
 # Le rÃ©fÃ©rentiel famille syrphidae
@@ -44,11 +49,21 @@ rownames(traits.PCA)<-traits[,1]
 # Changer le nom d'une colonne dans un df
 names(MOR)[names(MOR)=="Apb_Moreuil_14.08.2013"]<-"Apb_Moreuil_14/08/2013"
 
-# ==== Gestion d objets ====
+# ==== 03: Les JOINTURES ====
+nodes3 <- sqldf("SELECT ID, x  FROM nodes JOIN first USING(ID)")
+# http://stackoverflow.com/questions/1299871/how-to-join-merge-data-frames-inner-outer-left-right
+nodes3 <- merge(x = nodes, y = first, all.x = TRUE)
+# JOINTURE ATTENTION AU FORMAT DES DONNEES
+# === Error in postgresqlNewConnection(drv, ...) : 
+# === RS-DBI driver: (could not connect postgres@localhost on dbname "test"
+# === Error in !dbPreExists : invalid argument type
+
+
+# ==== 04 : Gestion d objets ====
 
 rm(list=ls()) #will remove ALL objects
 
-# Selection crÃ©ation d'un nouvel objet
+# Selection cretion d'un nouvel objet
 df3<-subset(df2,select = -c(releve,ferti,fauche,MAEt))
 
 # Selection d'un tableau avec certaine colonnes
@@ -58,22 +73,77 @@ Gbin2 <-Gbin1[c("individu","depX","depY","arX","arY","ind_pos.x","ind_pos.y")]
 # On nettoie
 e41[is.na(e41)]<-0
 
+# Type d'objet
+typeof(a)
+
 # Transofmation 
 # Ajout d'une nouvelle colonne
 BIM<-transform(BIM,"CATEGORIE"=paste(TYPE_MILIEUX_RA,variable,sep="_"))
+# ajout d'un colonne avec un equivalent a left
+df0<-transform(df0,"dept"=substr(CP,1,2))
+
+# ==== 041 : transformation d'une liste en une nouvelle liste ====
+# https://stackoverflow.com/questions/17866281/r-ifelse-on-string
+myfun <- function(x) {
+  switch(x,
+         'ACTIVITES_SANITAIRES_SOCIALES_PROTECTION_CIVILE'='protection',
+         'COMMUNES_3500_A_20000_HABITANTS_BOURGOGNE'='commune_35k_20k',
+         'COMMUNES_MOINS_3500_HABITANTS_COTE_D_OR' = 'commune_35k',
+         'ETABLISSEMENTS_DE_SANTE'= 'santé',
+         'ETABLISSEMENTS_ENSEIGNEMENT_ET_RECHERCHE' = 'enseignement',
+         'GROUPEMENTS_DE_COLLECTIVITES' = 'group_collectivi',
+         'MEMBRES_FONDATATEURS' = 'fondateurs',
+         'ORGANISMES_DIVERS' = 'divers',
+         'SYNDICATS_INTERCOMMUNAUX' = 'syndicats',
+         'COMMUNES_MOINS_3500_HABITANTS_NIEVRE' ='commune_35k',
+         'COMMUNES_PLUS_20000_HABITANTS_BOURGOGNE'= 'commune_200k',
+         'COMMUNES_MOINS_3500_HABITANTS_SAONE_LOIRE' = 'commune_35k',
+         'COMMUNES_MOINS_3500_HABITANTS_YONNE' = 'commune_35k'
+  )
+}
+
+df0$new_typo = sapply(df0$college, myfun)
+
+
+
+# creation d objet avec expression reguliere
+dftot <- within(dftot, grepl("no_*", variable)) <- 'non'
+
 
 # tranformation avec une condition
 V_env<-transform(V_env,"etat_num"= ifelse(Etat=="B",1,0))
 
+# mise avec condition
+# http://stackoverflow.com/questions/5545625/conditional-update-of-dataframe
+dftot$geoloc <- ifelse(test = grepl("no_*", dftot$variable), yes='non_geoloc', no='geoloc')
 
-#
+
+
+# citation des libraries utilisees
 citation(package="reshape2")
 citation(package="ggplot2")
 citation(package="rgdal")
 citation(package="xlsx")
 citation(package="plyr")
 
-# ==== Gestion des valeurs ====
+
+# trouver la position d'un colonne a partir de son nom
+which(names(df)=="bar")
+
+
+
+# identifier la colonne ayant la valeur max pour chaque ligne
+# http://stackoverflow.com/questions/21039904/which-max-and-assign-colnames-value-to-dataframe-in-r
+new$type <- names(new)[apply(new[-1], 1, which.max) + 1]
+
+
+#https://www.r-bloggers.com/how-to-use-lists-in-r/
+mylist<-list(x=c(1,5,7), y=c(4,2,6), z=c(0,3,4))
+
+
+
+
+# ==== 05 : Gestion des valeurs ====
 
 # On change TOUTES LES valeurs 2 en un 1
 rex2[rex2=="2"]<-1
@@ -86,6 +156,14 @@ FLORE_IG2$code <- ifelse(FLORE_IG2$taxon=="Dactylorhiza majalis (Reichenb.) P.F.
 # http://stackoverflow.com/questions/5487164/r-how-to-replace-parts-of-variable-strings-within-data-frame
 CD13<-as.data.frame(sapply(CD12,gsub,pattern="/0",replacement=""))
 
+# gestion et foramtage en date
+# http://stackoverflow.com/questions/36568070/extract-year-from-date
+
+# Pour nettoyer une colonne contenant des valeurs nulles en texte (NULL)
+# https://stackoverflow.com/questions/34469178/r-convert-factor-to-numeric-and-remove-levels
+df0$montant_contrat <- as.numeric(as.character(df0$montant_contrat))
+df0[is.na(df0)]<-0
+
 
 # Changement d'odre
 # Réordonner selon plusieurs colonnes
@@ -95,17 +173,29 @@ BICO<-BIC[with(BIC, order (TYPE_MILIEUX_RA,variable)),]
 # On réordonne
 BICO<-BIC[order
           (factor
-           (BIC$variable,
-            levels=c("SURF_GESTION.sum","SURF_ASSIST.sum"))),]
+          (BIC$variable,
+          levels=c("SURF_GESTION.sum","SURF_ASSIST.sum"))),]
 
 
 # Permet de créer une table avec les valeurs uniques de la colonne du df RD6
 df7<-as.data.frame(unique(RD6$Parcelle))
 
 
+# Compter le nombre d'occurence
+# http://forums.cirad.fr/logiciel-R/viewtopic.php?t=888
+
+# Compter en prenant compte de facteru
+# http://stackoverflow.com/questions/9809166/count-number-of-rows-within-each-group
+df2 <- count(df0, c('t1_sexe', 'age'))
 
 
-# ==== Sémiologie / Mise en couleur ====
+
+# ==== encodage
+Encoding(b$libelle_fr)<-"UTF-8"
+# Réencoder la table correctement
+# http://forums.cirad.fr/logiciel-R/viewtopic.php?t=5811
+
+# ==== 06 : Sémiologie / Mise en couleur ====
 # http://www.r-bloggers.com/r-using-rcolorbrewer-to-colour-your-figures-in-r/
 
 # === AFFICHAGE ===
@@ -116,9 +206,62 @@ par(mfrow = c(3,3))
 # http://stackoverflow.com/questions/14526429/turn-a-count-matrix-into-a-binary-existence-matrix
 Rpres<- as.matrix((Rphy3b > 0) + 0)
 
-# === Impresssion raster, Export sous forme d'image ici en PDF
+# ==== 07 traitement de data ====
+# === 071 :Compter les nombres de colonnes ayant des valeurs ====
+# http://stackoverflow.com/questions/18862114/count-number-of-columns-by-a-condition-for-each-row
+# head(subset(basc, nb_val >1))
+
+# === Stocker en attribut le nom de la colonne ayant le max dans le dataframe
+# http://stackoverflow.com/questions/17735859/for-each-row-return-the-column-name-of-the-largest-value
+df$cult_maj <- colnames(df)[apply(df,1,which.max)]
+
+
+
+# === 08 : Impresssion raster, Export sous forme d'image ici en PDF ====
 pdf("dendro_releve.pdf", width = 16.53, height=11.65)
 plot(hclust(vegdist(Rpres3,method="jaccard"),method="ward.D2"),cex=0.5,hang=0.25,main="CASDAR 2015 Dendrogramme \n sur relevés de Camille Delaplace",ylab="Distance de Similarité")
+
+# === Color B brewer ===
+display.brewer.pal(n = 8, name = 'Dark2')
+display.brewer.all()
+# http://www.stat.ubc.ca/~jenny/STAT545A/block14_colors.html
+
+
+
+# ==== 09 : Parser un dossier contenant plusieurs xml et en faire un df ====
+# objectif integrer tout les donnÃ©es des PECI a partir de la donnee **OD
+# https://www.data.gouv.fr/fr/datasets/service-public-fr-annuaire-de-l-administration-base-de-donnees-locales/
+
+# Scrpit ressource
+# http://stackoverflow.com/questions/22676706/parsing-multiple-xml-files-to-a-single-dateframe-in-r
+
+# ==== chargement des libraireis
+library(dplyr)
+library(XML)
+library(plyr)
+library(xmlparsedata)
+library(data.table)
+library(dtplyr)
+
+# setwd("G:/00_data_ref/data_gouv_fr/annuaire_admini/all_latest(1).tar/all_20170218/bfc_select")
+# setwd("G:/00_data_ref/data_gouv_fr/annuaire_admini/all_latest(1).tar/all_20170218/bfc_select")
+# setwd("C:/COPY_data_local/all_latest(2)/BFC_select_epci")
+setwd("G:/00_data_ref/data_gouv_fr/annuaire_admini/all_latest(2).tar/BFC/organismes/mairies")
+
+rm(files)
+# liste des fichiers dans le working dir
+files <- list.files()# recursive = TRUE, full.names= FALSE)
+# creer la fonction
+parse_xml2 <-function(FileName) {
+  doc1 <- xmlParse(FileName)
+  doc <-xmlToList(doc1)
+  doc3 <-as.data.frame(doc,stringsAsFactors=FALSE)
+}
+
+# lancer la fonction nouvellement crée pour creer le final df
+rm(mydf)
+dfmairie <-ldply(files,parse_xml2)
+
 
 
 # ==== Librairie plyr ====
@@ -159,7 +302,62 @@ PCbiplot <- function(PC, x="PC1", y="PC2") {
 }
 
 
+# boxplot SANS outliers
+# http://stackoverflow.com/questions/25124895/no-outliers-in-ggplot-boxplot-with-facet-wrap
+
 # Multiplot on ggplot2
+# http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_(ggplot2)/
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  library(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+
+
+
+
+
 # http://www.sthda.com/english/wiki/ggplot2-multiplot-put-multiple-graphs-on-the-same-page-using-ggplot2
 install_github("easyGgplot2", "kassambara")
 library(easyGgplot2)
@@ -167,4 +365,11 @@ library(easyGgplot2)
 library(devtools)
 install_github('sinhrks/ggfortify')
 library(ggfortify)
+
+
+
+
+
+# ==== GGPLOT ressource ====
+# https://stackoverflow.com/questions/1330989/rotating-and-spacing-axis-labels-in-ggplot2
 
