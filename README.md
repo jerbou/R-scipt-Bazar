@@ -1,2 +1,2 @@
 # R-scipt-Bazar
-Dossier contenant mes quelques script
+Dossier contenant quelques scripts pour l'usage de R
