@@ -60,7 +60,6 @@ nodes3 <- merge(x = nodes, y = first, all.x = TRUE)
 
 
 # ==== 04 : Gestion d objets ====
-
 rm(list=ls()) #will remove ALL objects
 
 # Selection cretion d'un nouvel objet
@@ -141,10 +140,7 @@ new$type <- names(new)[apply(new[-1], 1, which.max) + 1]
 mylist<-list(x=c(1,5,7), y=c(4,2,6), z=c(0,3,4))
 
 
-
-
 # ==== 05 : Gestion des valeurs ====
-
 # On change TOUTES LES valeurs 2 en un 1
 rex2[rex2=="2"]<-1
 
@@ -187,7 +183,6 @@ df7<-as.data.frame(unique(RD6$Parcelle))
 # Compter en prenant compte de facteru
 # http://stackoverflow.com/questions/9809166/count-number-of-rows-within-each-group
 df2 <- count(df0, c('t1_sexe', 'age'))
-
 
 
 # ==== encodage
@@ -261,6 +256,16 @@ parse_xml2 <-function(FileName) {
 # lancer la fonction nouvellement crée pour creer le final df
 rm(mydf)
 dfmairie <-ldply(files,parse_xml2)
+
+
+
+# ===== chargement de shapefiles via rgdal
+require.libryr(rgdal)
+shp0 <- readOGR(dsn = ".", layer = "LIVRAISON_PI_SDIS21_15012018", encoding = "UTF-8", use_iconv = TRUE)
+# charge en spécificant l encodage et une conversion
+head(shp0)
+# on recupere la partie attributaire en dataframe, avec coord (si ponctuels, x, y...)
+df0 <- as(shp0, "data.frame")
 
 
 
