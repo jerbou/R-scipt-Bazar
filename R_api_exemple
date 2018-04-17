@@ -4,6 +4,7 @@
 # chargement de librairies
 require.library(httr)
 library(httr)
+library(jsonlite)
 
 # necessite de connaitre la doc de l ap
 # recuperer les contact des mairies a partir de l API
@@ -17,3 +18,12 @@ json_parse <- function(req) {
   fromJSON(text, simplifyDataFrame = TRUE, flatten = TRUE)
 }
 
+# ==== 02 applatissement de json ====
+df_mairie21 <- jsonlite::flatten( as.data.frame(json_parse(mairie21)))
+df_mairie25 <- jsonlite::flatten( as.data.frame(json_parse(mairie25)))
+df_mairie39 <- jsonlite::flatten( as.data.frame(json_parse(mairie39)))
+df_mairie58 <- jsonlite::flatten( as.data.frame(json_parse(mairie58)))
+df_mairie70 <- jsonlite::flatten( as.data.frame(json_parse(mairie70)))
+df_mairie71 <- jsonlite::flatten( as.data.frame(json_parse(mairie71)))
+df_mairie89 <- jsonlite::flatten( as.data.frame(json_parse(mairie89)))
+df_mairie90 <- jsonlite::flatten( as.data.frame(json_parse(mairie90)))
