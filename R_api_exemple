@@ -1,0 +1,19 @@
+# https://www.rstudio.com/resources/videos/using-web-apis-from-r/
+# video montrant l utilite 
+
+# chargement de librairies
+require.library(httr)
+library(httr)
+
+# necessite de connaitre la doc de l ap
+# recuperer les contact des mairies a partir de l API
+mairie21 <-GET('http://etablissements-publics.api.gouv.fr/v1/organismes/21/mairie')
+
+# il faut parser pour obtenir qqchose d exploitable
+# creation fonction parse
+json_parse <- function(req) {
+  text <- content(req, as='text', encoding="UTF-8")
+    if(identical(text, "")) warn("No output to parse")
+  fromJSON(text, simplifyDataFrame = TRUE, flatten = TRUE)
+}
+
