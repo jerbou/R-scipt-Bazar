@@ -397,6 +397,9 @@ names(resume) <- c("college","nombre","min","medianne","moyen","max", "somme")
 # === Reverse order tips ====
 # https://stackoverflow.com/questions/42710056/reverse-stacked-bar-order
 
+# ==== TO DO : frise de cotisation avec colorisaiton par group / college
+# https://stackoverflow.com/questions/46027258/r-graph-label-by-group
+
 # ==== ordonner graphes
 # https://stackoverflow.com/questions/46554429/ggplot2-reordering-special-variable-count
 # https://stackoverflow.com/questions/5208679/order-bars-in-ggplot2-bar-graph
