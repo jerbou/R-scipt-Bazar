@@ -1,0 +1,436 @@
+---
+title: "Valorisation de la donnée : Météo des adhérents"
+author: "POC' Markdown JB"
+date: "11/04/2018"
+output:
+  ioslides_presentation:
+    smaller: yes
+  slidy_presentation: default
+  beamer_presentation: default
+---
+
+```{r setup, include=FALSE}
+# knitr::opts_chunk$set(echo = TRUE)
+#  https://stackoverflow.com/questions/25646333/code-chunk-font-size-in-rmarkdown-with-knitr-and-latex
+library(ggplot2)
+library(dplyr)
+library(knitr)
+library(dplyr)
+library(XML)
+library(plyr)
+library(data.table)
+library(dtplyr)
+library(ggplot2)
+library(xlsimple)
+library(sqldf)
+library(stringr)
+library(tidyr)
+library(readODS)
+library(dismo)
+library(XML)
+library(stringi)
+library(httr)
+library(doBy)
+library(scales)
+library(banR)
+library(readr)
+library(readxl)
+library(gridExtra)
+library(treemapify)
+library(forcats)
+```
+
+# R Markdown
+```{r readin,  echo=FALSE}
+df0 <- read_excel("C:/COPY_data_local/ternum/Liste adhérents pour météo_04_2018.xlsx")
+
+df0[c("nature_ad")] <- NA
+setnames(df0, old = 2, new = c('college'))
+# df1 <- transform(df1,"samedi"= ifelse(jour4_f=="samedi" & jour4_o=="lundi" , lundi, samedi))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==1, 'Membres fondateurs', NA))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' >=2 &  df0$'college' <=5 | df0$'college' >=14 & df0$'college' <=17, 'Communes de moins de 3500 hab' , nature_ad))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==6, 'Communes de 3500 a 20000 hab', nature_ad))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==7, 'Communes plus de 20000 hab', nature_ad))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==8, 'Groupements de collectivités', nature_ad))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==9, 'Syndicat intercommunaux', nature_ad))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==10, 'Etablissement Recherche', nature_ad))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==11, 'Etablissement Santé', nature_ad))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==12, 'Sanitaires et Protection civile', nature_ad))
+df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==13, 'Divers', nature_ad))
+
+# df0[c("col_lab")] <- NA
+# df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' ==1, 'Membres fondateurs', NA))
+# df0 <- transform(df0, "nature_ad" = ifelse(df0$'college' >=2, 'Communes de moins de 3500 hab de Cote d''Or', NA))
+
+df_ad <- subset(df0, df0$'college' != 1)
+cat <- sapply(df_ad, is.factor)
+df_ad[cat] <- lapply(df_ad[cat], factor)
+
+```
+Exemple de présentation utilisant R Markdown. Manière simple de créer des rapports automatisés en HTML, PDF, and MS Word documents. Plus de détails sur RMarkdown, regarder <http://rmarkdown.rstudio.com>.
+
+# **Objectif** 
+## Faire parler le tableur de Laetita **liste des adhérents** avec des quelques graphes et proposer quelques indicateurs
+## Il sera présenter plusieurs graphes selon des **territoires** avec differents regroupements :  
+
+>- collège (définition GIP)  
+>- Département : on regroupe les adhérents selon leur appartenance à un département (Code Département)  
+>- Nature : Un autre découpage simplifiant les collèges  
+
+## Quelques chiffres clés
+```{r chiffre_cle, echo=FALSE, warning=FALSE, collapse = TRUE, message = FALSE}
+resume <- df0 %>%
+  group_by(nature_ad) %>%
+  summarize_each(funs(length, min, median, mean, max, sum), cotisation_annuelle)
+names(resume) <- c("college","nombre","min","medianne","moyen","max", "somme")
+resume$moyen <- round(resume$moyen,0)
+resume$somme <- round(resume$somme,0)
+resume2 <- resume[order(-resume$nombre),]
+knitr::kable(resume2)
+```
+
+
+# graphes Nombres d'adhérents
+
+## Nombre d'adhérents par college
+```{r nb_adh_college, echo=FALSE}
+h0 <- ggplot(data=df0, aes(x = factor(df0$'college'))) +geom_bar()
+h0 + labs(fill= "Type local", x="college", y = "nombre") + geom_text(color = "white", stat='count', aes(label=..count..), vjust=1.25)
+```
+
+## En classant  
+```{r nb_adh_college_horizon, echo=FALSE}
+h0 <- ggplot(data=df0, aes(x = fct_infreq(as.factor(df0$college)))) +geom_bar()
+# h0 <- ggplot(data=df0, aes(x = factor(df0$'college'))) +geom_bar()
+h0 + labs(fill= "Type local", x="college", y = "nombre") + geom_text(color = "white", stat='count', aes(label=..count..), vjust=1.25)
+```
+
+## En classant WIP
+```{r nb_adh_college_o, echo=FALSE}
+h0 <- ggplot(data=df0, aes(x = fct_infreq(as.factor(df0$college)))) +geom_bar()
+# h0 <- ggplot(data=df0, aes(x = factor(df0$'college'))) +geom_bar()
+h1 <- h0 + labs(fill= "Type local", x="college", y = "nombre") + geom_text(color = "white", stat='count', aes(label=..count..), hjust=2) + coord_flip()
+h1
+```
+
+
+
+
+## En couleur par département
+```{r nb_adh_collge_dep, echo=FALSE, fig.cap = "..."}
+h1 <- ggplot(data=df0, aes(x = factor(fct_infreq(as.factor(df0$college))), fill=factor(df0$CodeDepartement))) +geom_bar() 
+# + facet_wrap( ~ df0$'CodeDepartement')
+h2 <- h1 + theme(legend.position = c(0.8, 0.7), legend.box = "horizontal") + labs(fill= "Département", x="college", y = "nombre")
+h2 + geom_text(size = 2.5, color = "white", stat='count', aes(label=..count..), position = position_stack(vjust = 0.5))
+```
+
+
+## Par nature d'adherents
+```{r nb_adh_newtypo_horizontal, echo=FALSE, warning=FALSE}
+f1 <- ggplot(data=df0, aes(x = factor(fct_infreq(as.factor(df0$'nature_ad'))))) +geom_bar()
+f2 <- f1 + labs(fill= "Type local", x="Nature", y = "nombre") + geom_text(color = "white", stat='count', aes(label=..count..), hjust=1.25, size = 4) 
+f2 + scale_x_discrete()  + coord_flip()
+# https://stackoverflow.com/questions/30614105/create-abbreviated-legends-manually-for-long-x-labels-in-ggplot2
+```
+
+## Par nature d'adherents
+```{r nb_adh_newtypo_0, echo=FALSE, warning=FALSE}
+f1 <- ggplot(data=df0, aes(x = factor(fct_infreq(as.factor(df0$'nature_ad'))))) +geom_bar()
+f2 <- f1 + labs(fill= "Type local", x="Nature", y = "nombre") + geom_text(color = "white", stat='count', aes(label=..count..), vjust=1.5) 
+f2 + scale_x_discrete(labels = abbreviate) +  theme(legend.position = c(0.8, 0.7))
+# https://stackoverflow.com/questions/30614105/create-abbreviated-legends-manually-for-long-x-labels-in-ggplot2
+```
+
+## Nouveau par nature d'adherents
+```{r nb_adh_newtypo_1, echo=FALSE, warning=FALSE}
+h3 <- ggplot(data=df0, aes(x = factor(fct_infreq(as.factor(df0$'nature_ad'))), fill=factor(df0$CodeDepartement))) +geom_bar() 
+# + facet_wrap( ~ df0$'CodeDepartement')
+h4 <- h3 + theme(legend.position = c(0.8, 0.7), legend.box = "horizontal") + labs(fill= "Département", x="Nature", y = "nombre")
+h4 + guides(col = guide_legend(nrow = 2)) + geom_text(size = 2.5, color = "white", stat='count', aes(label=..count..), position = position_stack(vjust = 0.5)) + scale_x_discrete(labels = abbreviate)
+```
+
+
+## Graphique circulaire dép
+```{r pie_dep, echo=FALSE, warning=FALSE}
+dfp <- as.data.frame(table(df0$'CodeDepartement'))
+dfp <- subset(dfp, dfp$Freq != 0)
+# https://stackoverflow.com/questions/47752037/pie-chart-with-ggplot2-with-specific-order-and-percentage-annotations
+# changement ordre
+dfp$Var1 <- factor(dfp$Var1, levels = rev(as.character(dfp$Var1)))
+# https://stackoverflow.com/questions/18209061/how-to-calculate-percentage-from-a-vector-of-counts
+dfp$percent = round((dfp$Freq / sum(dfp$Freq)) * 100 , 0)
+p0 <- ggplot(data=dfp, aes(x="", y = Freq, fill= factor(Var1))) +geom_bar(width=1, stat="identity")
+# https://stackoverflow.com/questions/28912059/labels-on-the-pie-chart-for-small-pieces-ggplot
+p0 +labs(fill="") + coord_polar("y", start=0) + labs(fill= "Dép", x="", y = "") + geom_text(color = "white", aes(label=paste(Freq, paste(percent, '%', sep=' '), sep='\n') , y=Freq / 2 + c(0, cumsum(Freq)[-length(Freq)]))) + theme(legend.position = "right",   ### Solution to part 1, no legend
+        axis.ticks = element_blank(), 
+        panel.grid = element_blank(), 
+        axis.text  = element_blank())
+
+```
+
+## Graphique circulaire nature
+```{r pie_nat, echo=FALSE, warning=FALSE}
+dfp <- as.data.frame(table(df0$nature_ad))
+dfp <- subset(dfp, dfp$Freq != 0)
+# https://stackoverflow.com/questions/47752037/pie-chart-with-ggplot2-with-specific-order-and-percentage-annotations
+# changement ordre
+dfp$Var1 <- factor(dfp$Var1, levels = rev(as.character(dfp$Var1)))
+# https://stackoverflow.com/questions/18209061/how-to-calculate-percentage-from-a-vector-of-counts
+dfp$percent = round((dfp$Freq / sum(dfp$Freq)) * 100 , 0)
+p0 <- ggplot(data=dfp, aes(x="", y = Freq, fill= factor(Var1))) +geom_bar(width=1, stat="identity")
+# https://stackoverflow.com/questions/28912059/labels-on-the-pie-chart-for-small-pieces-ggplot
+p0 +labs(fill="") + coord_polar("y", start=0) + labs(fill= "Nature", x="", y = "") + geom_text(color = "white", aes(label=paste(Freq, paste(percent, '%', sep=' '), sep='\n') , y=Freq / 2 + c(0, cumsum(Freq)[-length(Freq)]))) + theme(legend.position = "right",   ### Solution to part 1, no legend
+        axis.ticks = element_blank(), 
+        panel.grid = element_blank(), 
+        axis.text  = element_blank())
+
+```
+
+## Graphique circulaire college
+```{r pie_college, echo=FALSE, warning=FALSE}
+dfp <- as.data.frame(table(df0$college))
+dfp <- subset(dfp, dfp$Freq != 0)
+# https://stackoverflow.com/questions/47752037/pie-chart-with-ggplot2-with-specific-order-and-percentage-annotations
+# changement ordre
+dfp$Var1 <- factor(dfp$Var1, levels = rev(as.character(dfp$Var1)))
+# https://stackoverflow.com/questions/18209061/how-to-calculate-percentage-from-a-vector-of-counts
+dfp$percent = round((dfp$Freq / sum(dfp$Freq)) * 100 , 0)
+p0 <- ggplot(data=dfp, aes(x="", y = Freq, fill= factor(Var1))) +geom_bar(width=1, stat="identity")
+# https://stackoverflow.com/questions/28912059/labels-on-the-pie-chart-for-small-pieces-ggplot
+p0 +labs(fill="") + coord_polar("y", start=0, direction=1) + labs(fill= "college", x="", y = "") + geom_text(color = "white", aes(label=paste(Freq, paste(percent, '%', sep=' '), sep='\n') , y=Freq / 2 + c(0, cumsum(Freq)[-length(Freq)]))) + theme(legend.position = "right",   ### Solution to part 1, no legend
+        axis.ticks = element_blank(), 
+        panel.grid = element_blank(), 
+        axis.text  = element_blank())
+```
+
+# graphes Cotisation
+
+## Distribution du montant de Cotisation
+
+```{r partshown, echo=FALSE}
+g1 <-ggplot(df0, aes(x=df0$'cotisation_annuelle')) + geom_density() + labs(x="Costisation", y = "Part")
+g1 + scale_x_continuous(breaks = c(0, 20000 , 100000 , 200000))
+
+```
+Ouch, on ne voit rien car les membres fondateurs sont également inclus dans le jeu de données
+
+## Distribution Cotisations Adhérents
+
+```{r densite1, echo=FALSE}
+h2c <- ggplot(data=df_ad) +geom_density(data=df_ad, aes(df_ad$'cotisation_annuelle'), adjust = 1.5, size=1) + labs(x="Montant de Cotisation", y = "densité")
+h2c
+```
+
+
+## Distribution Cotisations Adhérents
+
+```{r densite21, echo=FALSE}
+p<-ggplot(df_ad, aes(x=df_ad$cotisation_annuelle)) +
+  geom_density(adjust = 1.5, size=1)+
+  geom_vline(data=df_ad, aes(xintercept=mean(df_ad$cotisation_annuelle), colour="moyenne 1367 euros"),
+             linetype="dashed", size=1.25)+
+  geom_vline(data=df_ad, aes(xintercept=median(df_ad$cotisation_annuelle), colour="medianne 325 euros"),
+             linetype="dashed", size=1.25)
+p1 <- p + theme(legend.position = c(0.8, 0.8))  + labs(fill= "Département", x="Montant", y = "nombre")
+p1 + scale_color_manual(values=c("red", "darkgreen", "gray"), name="légende") + scale_x_continuous(breaks = c(0, 1500, 2500, 5000 , 7500, 10000, 12500, 15000, 17500, 20000 ))
+
+```
+
+## Cela veut dire :
+>- **médiane** : La **moitié (50%)** des adhérentes payent une cotisation inférieure à **325 euros**  
+ l'autre moitié payent **plus de 325 euros** de cotisation  
+\newline  
+>- **moyenne** : En moyenne, un adhérent paye **1367 euros** en cotisation annuelle  
+ Etant donne la distribution, une moyenne ne donne pas trop de **sens**.  
+>- Autres remarques : **155 Syndicats** et assimilé ne payent pas de cotisation.
+
+## Quelques chiffres cle
+
+
+
+
+## En affinant
+
+```{r densite41, echo=FALSE}
+h2c <- ggplot(data=df_ad) +geom_density(data=df_ad, aes(df_ad$'cotisation_annuelle'), adjust = 1.5, size=1) + labs(x="Montant de Cotisation", y = "densité")
+h2c + facet_grid(.~df_ad$nature_ad) + coord_cartesian(xlim = c(0, 5000))
+```
+
+## En affinant stacked density
+
+```{r densite42, echo=FALSE}
+h2c <- ggplot(data=df_ad) +geom_density(data=df_ad, aes(df_ad$'cotisation_annuelle',fill=df_ad$nature_ad), position="stack", adjust = 1.5, size=1) + labs(x="Montant de Cotisation", y = "densité")
+h2c +coord_cartesian(xlim=c(0,2500)) + labs(fill= "Nature", x="Cotisation Montant", y = "Densité")
+```
+
+
+## Pour aller un peu plus loin
+```{r densite3, echo=FALSE}
+g1 <- ggplot(df_ad, aes(x=df_ad$cotisation_annuelle, ..count.., fill=factor(df_ad$nature_ad))) +
+  geom_density(position = "fill") + scale_fill_brewer(palette = "Set1")
+g1 + theme(legend.position = "bottom", legend.text=element_text(size=6))  + labs(fill= "Nature", x="Montant", y = "pourcentage") + scale_x_continuous(breaks = c(0, 1500, 2500, 5000 , 7500, 10000, 12500, 15000, 17500, 20000 , 22500 ))
+
+```
+
+## Ce que montre ce graphe
+>- En parcours l'axe des absisses (Pour un montant de cotisation donnée), on a la compistion.
+>- Il y a :
+>- Jusqu'à **5000 euros**, les adhérents sont en grande majorité des **communes de 3500 hab**.
+>- Au dela de , ce sont les **communes de 3500 à 20000 hab**
+>- au dela, ce sont les **groupement de communes**
+
+# Contributions
+
+## On regarde la somme des cotisations par territoire  
+Membres fondateurs et Adhérents  
+
+## Contributions financières
+```{r nb_cotis_col, echo=FALSE, warning=FALSE}
+# tableau recap et GRAPHE
+bil_nat <- summaryBy(cotisation_annuelle  ~ nature_ad , data = df0, FUN=c(sum,mean,length), fun.names=c('cotis_som','cotis_mean', 'cotis_nb'))
+bil_col <- summaryBy(cotisation_annuelle  ~ df0$college , data = df0, FUN=c(sum,mean,length), fun.names=c('cotis_som','cotis_mean', 'cotis_nb'))
+bil_col$percent = round((bil_col$cotisation_annuelle.cotis_som / sum(bil_col$cotisation_annuelle.cotis_som)) * 100 , 1)
+
+h3 <- ggplot(data=bil_col, aes(x = factor(bil_col$'college'), y=bil_col$cotisation_annuelle.cotis_som )) +geom_bar(stat="identity") 
+h4 <- h3 + labs(fill= "Département", x="Collège", y = "montant") + scale_y_continuous(breaks = c(10000, 250000, 500000 , 1000000, 1250000 , 1500000 , 1800000))
+h4 + geom_text(size = 3, color = "white", stat='identity', aes(label=(paste(as.character(percent),"%",sep=' '))), position = position_stack(vjust = 0.5))
+
+```
+
+## Contributions financières dép
+```{r nb_cotis_col_dep, echo=FALSE, warning=FALSE}
+# tableau recap et GRAPHE
+bil_dep <- summaryBy(cotisation_annuelle  ~ CodeDepartement , data = df0, FUN=c(sum,mean,length), fun.names=c('cotis_som','cotis_mean', 'cotis_nb'))
+bil_dep$percent = round((bil_dep$cotisation_annuelle.cotis_som / sum(bil_dep$cotisation_annuelle.cotis_som)) * 100 , 1)
+
+h3 <- ggplot(data=bil_dep, aes(x = factor(bil_dep$CodeDepartement), y=bil_dep$cotisation_annuelle.cotis_som )) +geom_bar(stat="identity") 
+h4 <- h3 + labs(fill= "Département", x="Département", y = "montant") + scale_y_continuous(breaks = c(10000, 250000, 500000 , 1000000, 1250000 , 1500000 , 1800000)) +  scale_x_discrete(labels = abbreviate)
+h4 + geom_text(size = 3, color = "white", stat='identity', aes(label=(paste(as.character(percent),"%",sep=' '))), position = position_stack(vjust = 0.5))
+
+```
+  
+## Explications  
+Le Doubs cotiserait à hauteur de **19,6** % à Ternum !?  
+N'importe quoi me direz vous !  
+Il faut regarder la donnée et constater que la Région  
+a pour codedépartement : 25
+
+## Contributions financières nature
+```{r nb_cotis_col_nat, echo=FALSE, warning=FALSE}
+# tableau recap et GRAPHE
+bil_nat <- summaryBy(cotisation_annuelle  ~ nature_ad , data = df0, FUN=c(sum,mean,length), fun.names=c('cotis_som','cotis_mean', 'cotis_nb'))
+bil_nat$percent = round((bil_nat$cotisation_annuelle.cotis_som / sum(bil_nat$cotisation_annuelle.cotis_som)) * 100 , 1)
+
+h3 <- ggplot(data=bil_nat, aes(x = factor(bil_nat$'nature_ad'), y=bil_nat$cotisation_annuelle.cotis_som )) +geom_bar(stat="identity") 
+h4 <- h3 + labs(fill= "Département", x="Nature", y = "montant") + scale_y_continuous(breaks = c(10000, 250000, 500000 , 1000000, 1250000 , 1500000 , 1800000)) +  scale_x_discrete(labels = abbreviate)
+h4 + geom_text(size = 3, color = "white", stat='identity', aes(label=(paste(as.character(percent),"%",sep=' '))), position = position_stack(vjust = 0.5))
+
+```
+
+
+# Voir Cotisation et les territoires
+## cotisations par departement illisible
+```{r point00, echo=FALSE, message=FALSE,}
+b2 <- ggplot(data=df_ad, aes(y=df_ad$'cotisation_annuelle', x=factor(df_ad$'CodeDepartement'))) + geom_point()
+b2 + labs(x="département", y = "montant de cotisation")
+```
+
+## cotisations par departement illisible
+```{r point01, echo=FALSE, message=FALSE,}
+b2 <- ggplot(data=df_ad, aes(y=df_ad$'cotisation_annuelle', x=factor(df_ad$'CodeDepartement'))) + geom_point(alpha=0.1)
+b2 + labs(x="département", y = "montant de cotisation") +geom_jitter(alpha=0.1)
+```
+
+## cotisations dispersion
+```{r boxplot2, echo=FALSE, message=FALSE,}
+b2 <- ggplot(data=df_ad) +geom_boxplot(data=df_ad, aes(y=df_ad$'cotisation_annuelle', x=factor(df_ad$'CodeDepartement')))
+b2 + labs(x="département", y = "montant de cotisation")
+```
+
+## Explications :
+Boites englobent **95 % des adhérents** pour chaque **territoire** 
+  les **barres noires** représentent les **médianes** pour chaque **territoire**  
+  
+
+## cotisations dispersion nature
+```{r boxplot_nature, echo=FALSE, message=FALSE, warning=FALSE}
+b2 <- ggplot(data=df_ad) +geom_boxplot(data=df_ad, aes(y=df_ad$'cotisation_annuelle', x=factor(df_ad$nature_ad)))
+b2 + labs(x="Nature", y = "montant de cotisation")  + scale_x_discrete(labels = abbreviate)
+```
+
+# Relation Cotisation / Nombre d'habitants 
+## Modele éco' en graphes
+```{r coti_hab, echo=FALSE}
+p1 <- ggplot(data=df_ad) + geom_point(aes(x=df_ad$cotisation_annuelle , y=df_ad$NbreHabitants)) + theme(legend.position = "bottom")
+p1 + theme(legend.position = "right") + labs(color= "college", x="Montant de Cotisation", y = "nombre d'habitants")
+```
+
+## On differencie avec les colleges
+```{r coti_hab_col, echo=FALSE}
+p2 <- ggplot(data=df_ad) + geom_point(aes(x=df_ad$cotisation_annuelle , y=df_ad$NbreHabitants , color=factor(df_ad$'college'))) + theme(legend.position = "right") 
+p2 + theme(legend.position = "right") + labs(color= "college", x="Montant de Cotisation", y = "nombre d'habitants")
+```
+
+## On differencie avec la nature
+```{r coti_hab_nat, echo=FALSE}
+p3 <- ggplot(data=df_ad) + geom_point(aes(x=df_ad$cotisation_annuelle , y=df_ad$NbreHabitants , color=factor(df_ad$'nature_ad'))) + theme(legend.position = "right")
+p3 + theme(legend.position = "right") + labs(color= "nature", x="Montant de Cotisation", y = "nombre d'habitants")
+```
+
+## en y ajoutant une courbe
+```{r coti_hab_col_courbe, echo=FALSE, message=FALSE,}
+p3 <- p2 + geom_smooth(aes(x=df_ad$cotisation_annuelle , y=df_ad$NbreHabitants), span = 0.05)
+p3 + theme(legend.position = "right") + labs(color= "college", x="Montant de Cotisation", y = "nombre d'habitants")
+```
+
+
+## Treemap Surface Habitants
+```{r figdim2, echo=FALSE, message=FALSE,}
+df_ad <- subset(df0, df0$'college' != 1)
+cat <- sapply(df_ad, is.factor)
+recap <- summaryBy(cotisation_annuelle + NbreHabitants ~ nature_ad , data = df_ad, FUN=c(sum,mean,length))
+
+g1 <- ggplot(recap, aes(fill=recap$cotisation_annuelle.sum, area=recap$NbreHabitants.sum, label= recap$nature_ad)) +geom_treemap() + 
+  geom_treemap_text(fontface = "italic", colour = "black", place = "centre", grow = TRUE) + theme(legend.direction = 'horizontal' , legend.position = "bottom") +
+  scale_fill_gradient(low="white",high="red") + labs(fill= "Montant Cotisation")
+g1
+# + scale_fill_conti(palette = "Spectral")
+# A ameliorer
+
+```
+
+
+## Treemap Surface Cotisation
+```{r figdim3, echo=FALSE, message=FALSE,}
+df_ad <- subset(df0, df0$'college' != 1)
+cat <- sapply(df_ad, is.factor)
+recap <- summaryBy(cotisation_annuelle + NbreHabitants ~ nature_ad , data = df_ad, FUN=c(sum,mean,length))
+
+g1 <- ggplot(recap, aes(area=recap$cotisation_annuelle.sum, fill=recap$NbreHabitants.sum, label= recap$nature_ad)) +geom_treemap() + 
+  geom_treemap_text(fontface = "italic", colour = "black", place = "centre", grow = TRUE) + theme(legend.direction = 'horizontal' , legend.position = "bottom") +
+  scale_fill_gradient(low="white",high="red") + labs(fill= "Montant Cotisation")
+g1 +  theme(axis.text.y = element_text(angle = 90, hjust = 1))
+# + scale_fill_conti(palette = "Spectral")
+# A ameliorer
+
+```
+
+
+## Au final
+>- Des indicateurs parlants à tous à trouver
+>- Des graphes à garder, jeter ou améliorer
+>- Présentation et Mise en Page à améliorer
+>- Prendre garde au contexte de la donnée source
+>- A échanger, à discuter !  
+
+## TO COMPLETE :
+
+>- Cumul des montant d'adhésion selon la date
+>- *** Corrections PR ***
+>- Communiquer sur V2
+```{r anim_note, echo=FALSE, message=FALSE,}
+# https://grunwaldlab.github.io/Reproducible-science-in-R/Extra_content---Advanced_RMarkdown.html
+# https://www.r-bloggers.com/animated-plots-with-r/
+```
+
+
