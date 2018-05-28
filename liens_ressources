@@ -1,4 +1,9 @@
+
+# === B : GGPLOT and co ===
+# === Reverse order tips ====
+# https://stackoverflow.com/questions/42710056/reverse-stacked-bar-order
+
+
+
 # Ressources pour afficher des tables sous Rmarkdown / knitr
 # https://cran.r-project.org/web/packages/kableExtra/vignettes/awesome_table_in_html.html
-
-
