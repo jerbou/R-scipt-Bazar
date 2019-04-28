@@ -23,9 +23,27 @@ sqlTables(Connex)
 
 # Pour postgreSQL
 # http://neocarto.hypotheses.org/1186
-con <- dbConnect(dbDriver("PostgreSQL"), host="192.168.1.2", port="5432",dbname="EUPHORBE", user="postgres", pass="burotec")
+con <- dbConnect(dbDriver("PostgreSQL"), host="192.168.1.2", port="5432",dbname="EUPHORBE", user="user", pass="mdp")
 dsn="PG:host='192.168.1.2', port='5432', dbname='EUPHORBE', user='postgres', pass='burotec'"
 readOGR(dsn,"travaux_surf")
+
+# Définition des paramètres de connexion
+con <- dbConnect(dbDriver("PostgreSQL"), dbname="database",  port = 54xx, user='user', pass='mpd')
+dbGetQuery(con, "SHOW SERVER_ENCODING")
+df0 = dbGetQuery(con, "SELECT * FROM inpn.bdc_status_11")
+# df1 = dbGetQuery(con, "SELECT cd_type_statut , count(cd_ref) FROM inpn.bdc_status_11 group by 1 ")
+df1 = dbGetQuery(con, "SELECT cd_type_statut , label_statut, lb_adm_tr , count(cd_ref) FROM inpn.bdc_status_11 group by 1,2,3 ")
+df2 = subset(df1, lb_adm_tr != 'France' & lb_adm_tr != 'France métropolitaine')
+
+# postgresqlpqExec(con, "SET client_encoding = 'windows-1252'")
+declare_utf8 <- function(x) {
+  Encoding(x) <- "UTF-8"
+  x
+}
+# https://stackoverflow.com/questions/44558854/wrong-text-encoding-returned-when-query-from-postgresql-database-using-rpostgres
+
+df0 <- df0 %>% mutate_if(is.character, declare_utf8)
+
 
 # lister les tables présentes dans la bdd
 dbListTables(con)
