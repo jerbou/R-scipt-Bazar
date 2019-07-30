@@ -228,6 +228,9 @@ Rpres<- as.matrix((Rphy3b > 0) + 0)
 # http://stackoverflow.com/questions/17735859/for-each-row-return-the-column-name-of-the-largest-value
 df$cult_maj <- colnames(df)[apply(df,1,which.max)]
 
+# === customisation des notations ===
+options(scipen=999) # pour rester sur de la notation classique et éviter la notation scientifique par défaut
+
 
 
 # === 08 : Impresssion raster, Export sous forme d'image ici en PDF ====
