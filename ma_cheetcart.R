@@ -122,6 +122,37 @@ myfun <- function(x) {
 df0$new_typo = sapply(df0$college, myfun)
 
 
+# discretisation a la mano
+# https://stackoverflow.com/questions/15497694/cut-function-in-r-labeling-without-scientific-notations-for-use-in-ggplot2
+data_com_bfc$group <- cut(data_com_bfc$pop_2016, breaks=c(0, 30000, 50000, 100000,125000, 150000,max(data_com_bfc$pop_2016)), include.lowest=TRUE, dig.lab=10)
+data_epci_bfc$group <- cut(data_epci_bfc$pop_2016, breaks=c(0, 30000, 50000, 100000,125000, 150000,max(data_epci_bfc$pop_2016)), include.lowest=TRUE, dig.lab=10)
+melt(subset(data_com_bfc, data_com_bfc$pop_2016> 30000), id=c("group"))
+
+sel1 <- subset(data_com_bfc, data_com_bfc$pop_2016 >= 30000)
+sel2 <- subset(data_epci_bfc, data_epci_bfc$pop_2016 >= 30000)
+
+ggplot(data=sel1) + geom_bar(aes(x=group)) + labs(y="nombre de communes", x="découpage selon population", title="Le nombre de communes \n au dessus de 30 000 habitants", caption="Source INSEE, 2018") # +
+# scale_x_continuous(labels = function(x) format(group, scientific = TRUE))
+
+ggplot(data=sel2) + geom_bar(aes(x=group)) + labs(y="nombre d'intercommunalités", x="découpage selon population", title="Le nombre d'intercommunalités \n au dessus de 30 000 habitants", caption="Source INSEE, 2018") # +
+# +
+
+res_com <- dcast(sel1, group~libelle, value.var="libelle")
+resi_interco <- dcast(sel2, group~libelle, value.var="libelle")
+
+# create a new column `x` with the three columns collapsed together
+res_com$liste <- apply( res_com[ , names(res_com[2:7]) ] , 1 , paste , collapse = "," )
+resi_interco$liste <- apply( resi_interco[ , names(resi_interco[2:18]) ] , 1 , paste , collapse = "," )
+
+# https://stackoverflow.com/questions/14568662/paste-multiple-columns-together
+res_com
+
+res_com$liste <- gsub(",NA," , " ", res_com$liste, ignore.case=T)
+# sub(pattern = ',NA,', replacement = ' ' ,res_com$liste )
+res_com$liste <- gsub("NA\\s" , " ", res_com$liste, ignore.case=F)
+res_com$liste <- gsub("*,*" , " ", res_com$liste, ignore.case=F)
+
+
 
 # creation d objet avec expression reguliere
 dftot <- within(dftot, grepl("no_*", variable)) <- 'non'
