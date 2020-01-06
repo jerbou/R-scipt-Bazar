@@ -1,0 +1,486 @@
+
+# chargement des packages -----------------------------------------------------------------------------------------------------------------------
+library(flexdashboard)
+library(ggplot2)
+library(dplyr)
+library(knitr)
+# library(XML)
+library(plyr)
+library(data.table)
+library(dtplyr)
+library(ggplot2)
+# library(xlsimple)
+# library(sqldf)
+library(ade4)
+library(stringr)
+library(tidyr)
+library(readODS)
+library(dismo)
+library(XML)
+library(stringi)
+library(httr)
+library(doBy)
+library(scales)
+library(banR)
+library(readr)
+library(readxl)
+library(gridExtra)
+library(treemapify)
+library(wesanderson)
+library(forcats)
+library(gganimate)
+library(ggpol) # https://github.com/erocoar/ggpol
+library(RColorBrewer)
+library(ggiraph)
+library(plotly)
+library(tidyverse)
+library(extrafont)
+library(gghighlight)
+loadfonts(device="win")
+library(vegan)
+library ("FactoMineR")
+library(ade4)
+library(factoextra)
+library(sqldf)
+library(ggfortify)
+library(cluster)
+library(ggdendro)
+library(dendextend)
+library(ggfortify)
+library(RSQLite)
+library(viridis)
+library(ggalluvial)
+library(plyr)
+library(gghighlight)
+library(ggiraphExtra)
+library(ggpubr)
+
+# gestion data ----------------------------------------------------------------------------------------------------------------------------------
+#http://www.sthda.com/french/articles/38-methodes-des-composantes-principales-dans-r-guide-pratique/74-afc-analyse-factorielle-des-correspondances-avec-r-l-essentiel/
+indic_amo <- read_excel("C:/COPY_data_local/ternum/donnees_entree/indicateurs_AMO_eco.xlsx")
+indic_amo_gp <- read_excel("C:/COPY_data_local/ternum/donnees_entree/indicateurs_AMO_eco_group.xlsx")
+
+indic_amo[is.na(indic_amo)] <- 0
+indic_amo <- unique(indic_amo)
+# passage en 1 0 de gdd
+indic_amo$gdd_num <- ifelse(indic_amo$gdd=='Oui', 1, 0)
+head(indic_amo)
+dim(org_ternum)
+length(unique(org_ternum$Nom))
+head(indic_amo_limit)
+unique(indic_amo_limit$nature_ad)
+
+dim(org_ternum)[1] - length(unique(org_ternum$Nom))
+# 78 doublons dans les noms
+# df7 <- sqldf('select typo_service_dep.*, dfrep0.* from dfrep0  left join typo_service_dep on  dfrep0.Var1 = typo_service_dep.Code') # tableau de frequence avec jointure
+# Error in result_create(conn@ptr, statement) : duplicate column name: nom
+names(org_ternum)
+
+# nombre de ligne de la table
+dim(indic_amo)
+
+# nombre de valeurs unique dans le champ id
+length(unique(indic_amo$id))
+
+length(indic_amo$id)
+
+dim(org_ternum)
+
+# https://www.datanovia.com/en/lessons/identify-and-remove-duplicate-data-in-r/
+duplicated(indic_amo)
+indic_amo$doublon <- as.data.frame(duplicated(indic_amo$id))
+# identifier les doublons
+# Error in `row.names<-.data.frame`(`*tmp*`, value = c(288028, 287931, 282510,  : 
+#                                                        les duplications dans 'row.names' ne sont pas autorisées
+#                                                      In addition: Warning message:
+#                                                        non-unique value when setting 'row.names': ‘285289’ 
+indic_amo$doublon <- as.data.frame(duplicated(indic_amo$id))
+subset(indic_amo, doublon == "TRUE")
+# subset(indic_amo, id=="77420")
+# subset(indic_amo, id=="285289")
+indic_amo <- subset(indic_amo, doublon =="FALSE")
+
+# création du nombre de metrique
+indic_amo$nb_ser <- rowSums(select(indic_amo, c("nb_acte", "nb_flux_comptables" ,
+                                                "nb_consult" ,"nb_sites_web" ,
+                                                "nb_demandes_tf" ,"nb_boites_mail" ,
+                                                "gdd_num")) >0)
+
+
+# on rajoute 
+indic_amo$acte <- ifelse(indic_amo$nb_acte >0, 1 ,0)
+indic_amo$flux_comp <- ifelse(indic_amo$nb_flux_comptables >0, 1 ,0)
+indic_amo$consult <- ifelse(indic_amo$nb_consult >0, 1 ,0)
+indic_amo$site_web <- ifelse(indic_amo$nb_sites_web >0, 1 ,0)
+indic_amo$demand_tf <- ifelse(indic_amo$nb_demandes_tf >0, 1 ,0)
+indic_amo$boite_mail <- ifelse(indic_amo$nb_boites_mail >0, 1 ,0)
+indic_amo$gdd <- ifelse(indic_amo$gdd_num >0, 1 ,0)
+
+
+# retour expérience de Dominique Gdd est une sous page, un sous service de Site Web donc à enlever du clustering
+
+# org_ternum$doublon <- as.data.frame(duplicated(org_ternum))
+unique(org_ternum$doublon)
+
+head(indic_amo)
+View(indic_amo)
+# summary(indic_amo$nb_ser)
+# hist(indic_amo$nb_ser)
+
+# nouvelle typologie NATURE Adherent
+indic_amo$nature_ad = indic_amo$college
+indic_amo <- transform(indic_amo, "nature_ad" = ifelse(indic_amo$'college' =='COMMUNES_MOINS_3500_HABITANTS_BELFORT', 'Communes < 3500 hab', nature_ad))
+indic_amo <- transform(indic_amo, "nature_ad" = ifelse(indic_amo$'college' =='COMMUNES_MOINS_3500_HABITANTS_COTE_D_OR', 'Communes < 3500 hab', nature_ad))
+indic_amo <- transform(indic_amo, "nature_ad" = ifelse(indic_amo$'college' =='COMMUNES_MOINS_3500_HABITANTS_DOUBS', 'Communes < 3500 hab', nature_ad))
+indic_amo <- transform(indic_amo, "nature_ad" = ifelse(indic_amo$'college' =='COMMUNES_MOINS_3500_HABITANTS_HAUTE_SAONE', 'Communes < 3500 hab', nature_ad))
+indic_amo <- transform(indic_amo, "nature_ad" = ifelse(indic_amo$'college' =='COMMUNES_MOINS_3500_HABITANTS_JURA', 'Communes < 3500 hab', nature_ad))
+indic_amo <- transform(indic_amo, "nature_ad" = ifelse(indic_amo$'college' =='COMMUNES_PLUS_20000_HABITANTS_BOURGOGNE', 'Communes > 20000 hab', nature_ad))
+indic_amo <- transform(indic_amo, "nature_ad" = ifelse(indic_amo$'college' =='COMMUNES_MOINS_3500_HABITANTS_YONNE', 'Communes < 3500 hab', nature_ad))
+indic_amo <- transform(indic_amo, "nature_ad" = ifelse(indic_amo$'college' =='COMMUNES_MOINS_3500_HABITANTS_NIEVRE', 'Communes < 3500 hab', nature_ad))
+indic_amo <- transform(indic_amo, "nature_ad" = ifelse(indic_amo$'college' =='COMMUNES_MOINS_3500_HABITANTS_SAONE_LOIRE', 'Communes < 3500 hab', nature_ad))
+
+setwd("C:/COPY_data_local/ternum/donnees_entree/")
+org_ternum <- read_excel("C:/COPY_data_local/ternum/donnees_entree/ternum_organisations_bfc.xlsx")
+org_ternum_simple <- select(org_ternum, c("siren","id", "Nom", "epci", "dpt", "College", "statut_membre", "cotisation", "population"))
+adh <- subset(org_ternum_simple, statut_membre=="ADHERENT")
+
+adh <- as.data.frame(adh)
+
+df_analyse_all <- merge(org_ternum_simple, indic_amo, by = "id")
+
+table(org_ternum$statut_membre)
+
+dim(org_ternum)
+dim(indic_amo)
+
+
+# somme des colonnes pour distinguer l indicateur le plus utilisé
+distinc_ser <- as.data.frame(colSums(select(indic_amo, c("acte", "flux_comp",
+                                                         "consult", "site_web",
+                                                         "demand_tf", "boite_mail",
+                                                         "gdd"))))
+names(distinc_ser) <- c("nb_adh")
+distinc_ser$indic <- row.names(distinc_ser)
+
+
+#=== micro data mngmt ====
+gp_sync <- subset(indic_amo, college=="SYNDICATS_INTERCOMMUNAUX" & nb_ser !=0)
+gp_coll <- subset(indic_amo, college=="GROUPEMENTS_DE_COLLECTIVITES" & nb_ser !=0)
+gp_com <- subset(df_analyse_all, nature_ad=="Communes < 3500 hab" & nb_ser !=0)
+gp_sync$nom <- reorder(gp_sync$nom, gp_sync$nb_ser)
+gp_coll$nom <- reorder(gp_coll$nom, gp_coll$nb_ser)
+
+# mat_gp_coll <- select(subset(indic_amo, college=="GROUPEMENTS_DE_COLLECTIVITES" & nb_ser !=0), c("acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail", "gdd"))
+mat_gp_coll <- select(subset(indic_amo, college=="GROUPEMENTS_DE_COLLECTIVITES" & nb_ser !=0), c("acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail"))
+mat_gp_sync <- select(subset(indic_amo, college=="SYNDICATS_INTERCOMMUNAUX" & nb_ser !=0), c("acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail"))
+mat_com <- select(subset(df_analyse_all, nature_ad=="Communes < 3500 hab" & nb_ser !=0), c("acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail"))
+
+row.names(mat_gp_coll) <- gp_coll$nom
+row.names(mat_gp_sync) <- gp_sync$nom
+row.names(mat_com) <- paste(gp_com$nom,gp_com$dpt, sep="_")
+
+mat_gp_coll$names <- row.names(mat_gp_coll)
+mat_gp_sync$names <- row.names(mat_gp_sync)
+mat_com$names <- row.names(mat_com)
+
+melt_gp_coll <- melt(mat_gp_coll, id='names')
+melt_gp_sync <- melt(mat_gp_sync, id='names')
+melt_com <- melt(mat_com, id='names')
+
+
+# Graphe silouhette pour déterminer le nombre de groupes
+# graf_nb_sync <- fviz_nbclust(select(mat_gp_sync, c("acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail", "gdd")), kmeans, method = "silhouette") +
+#   labs(title="Clustering sur les Syndicats", x="Nombre de groupes k")
+
+graf_nb_sync <- fviz_nbclust(select(mat_gp_sync, c("acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail")), kmeans, method = "silhouette") +
+  labs(title="Clustering sur les Syndicats", x="Nombre de groupes k")
+# trouver 10 groupes differents
+
+graf_nb_coll <- fviz_nbclust(select(mat_gp_coll, c("acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail")), kmeans, method = "silhouette") +
+  labs(title="Clustering sur les groupement de Collectivités", x="Nombre de groupes k")
+# 9 groups
+
+graf_nb_com <- fviz_nbclust(select(mat_com, c("acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail")), kmeans, method = "silhouette") +
+  labs(title="Clustering sur Communes", x="Nombre de groupes k")
+# 8 groupes
+
+ggarrange(graf_nb_sync, graf_nb_coll, graf_nb_com, common.legend = TRUE, nrow=3, ncol=1, align = "h")
+
+
+# fviz_nbclust(select(mat_gp_sync, c("acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail", "gdd")), kmeans, method = "silhouette")
+
+
+# graph geom tile
+ggplot(melt_gp_sync, aes(x=str_wrap(names,45), y=variable, fill=factor(value))) + geom_tile(color="gray50", size=0.1) +
+  coord_equal()  + scale_fill_manual(values = c("1" = "tomato", "0" = "white"), labels=c("utilise", "non")) +
+  labs(x="Syndicat") +
+  theme(axis.text.x = element_text(angle=90, hjust=0, vjust=0, size=5),
+        legend.title = element_text(size = 7),
+        legend.text= element_text(size=rel(0.5)),
+        legend.position = "none"
+  )+
+  scale_x_discrete(position = "top")
+
+# calcul de l indice de distance
+hc_ex <- hclust(dist(select(mat_gp_sync, -names)), "ave")
+hc_coll <- hclust(dist(select(mat_gp_coll, -names)), "ave")
+hc_com <- hclust(dist(select(mat_com, -names)), "ave")
+
+
+coul = brewer.pal(8, "Set1") 
+coul9 = brewer.pal(9, "Set1") 
+coul10 = brewer.pal(10, "Spectral") 
+
+
+fviz_dend(hc_ex, k = 10,   lwd=0.45,               # Cut in four groups
+          cex = 0.5,   horiz=TRUE,              # label size
+          k_colors = coul,
+          color_labels_by_k = TRUE,  # color labels by groups
+          ggtheme = theme_void(),# Change theme
+          rect = TRUE , # ajouter un rectangle
+          # rect_lty = 2 ,# typo de trame pour le rectangle
+          labels_track_height = 0.1,
+          rect_border = coul
+)
+
+
+fviz_dend(hc_com, k = 8,   lwd=0.45,               # Cut in four groups
+          cex = 0.5,   horiz=TRUE,              # label size
+          k_colors = coul10,
+          color_labels_by_k = TRUE,  # color labels by groups
+          ggtheme = theme_void(),# Change theme
+          rect = TRUE , # ajouter un rectangle
+          # rect_lty = 2 ,# typo de trame pour le rectangle
+          labels_track_height = 0.1,
+          rect_border = coul10
+)
+
+
+# === decoupage apres clusterisation pour integration dans les data ====
+groups<-cutree(hc_ex, k=8)
+# mat_gp_coll<-cbind(mat_gp_coll,groups)
+mat_gp_sync<-cbind(mat_gp_sync,groups)
+
+groups_com <-cutree(hc_com, k=10)
+mat_com <-cbind(mat_com,groups_com)
+
+groups_com2 <- as.data.frame(groups_com)
+groups_com2$Nom <- row.names(groups_com2)
+
+group2 <- as.data.frame(groups)
+group2$Nom <- row.names(group2)
+# df_analyse_all <- merge(org_ternum_simple, indic_amo, by = "id")
+
+# on bianiser sur le df_analyse_all
+df_analyse_all$acte <- ifelse(df_analyse_all$nb_acte >0, 1 ,0)
+df_analyse_all$flux_comp <- ifelse(df_analyse_all$nb_flux_comptables >0, 1 ,0)
+df_analyse_all$consult <- ifelse(df_analyse_all$nb_consult >0, 1 ,0)
+df_analyse_all$site_web <- ifelse(df_analyse_all$nb_sites_web >0, 1 ,0)
+df_analyse_all$demand_tf <- ifelse(df_analyse_all$nb_demandes_tf >0, 1 ,0)
+df_analyse_all$boite_mail <- ifelse(df_analyse_all$nb_boites_mail >0, 1 ,0)
+df_analyse_all$gdd <- ifelse(df_analyse_all$gdd_num >0, 1 ,0)
+
+df_sync <- subset(df_analyse_all, college=="SYNDICATS_INTERCOMMUNAUX" ) # & nb_ser !=0
+df_com <- subset(df_analyse_all, nature_ad=="Communes < 3500 hab" & nb_ser !=0)
+
+row.names(mat_com) <- paste(gp_com$nom,gp_com$dpt, sep="_")
+
+
+# mat_gp_sync_2<-cbind(df_sync,groups)
+unique(df_analyse_all$college)
+
+# on fait la fusion pour recuperer les groups
+df_sync3 <- merge(df_sync, group2, by = "Nom")
+
+df_com$Nom_id <- paste(df_com$nom,df_com$dpt, sep="_")
+df_com3 <- merge(df_com, groups_com2, by.x = "Nom_id", by.y="Nom")
+str(df_com3)
+
+df_sync3$acte <- ifelse(df_sync3$nb_acte >0, 1 ,0)
+df_sync3$flux_comp <- ifelse(df_sync3$nb_flux_comptables >0, 1 ,0)
+df_sync3$consult <- ifelse(df_sync3$nb_consult >0, 1 ,0)
+df_sync3$site_web <- ifelse(df_sync3$nb_sites_web >0, 1 ,0)
+df_sync3$demand_tf <- ifelse(df_sync3$nb_demandes_tf >0, 1 ,0)
+df_sync3$boite_mail <- ifelse(df_sync3$nb_boites_mail >0, 1 ,0)
+df_sync3$gdd <- ifelse(df_sync3$gdd_num >0, 1 ,0)
+
+
+# select(df_sync3, c("Nom", "dpt", "cotisation", "groups"))
+
+# deuxieme melt en fait
+#melt_gp_sync2 <- melt(select(df_sync3, c("Nom", "acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail", "gdd", "groups")), id=c('Nom','groups'))
+melt_gp_sync2 <- melt(select(df_sync3, c("Nom", "acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail", "groups")), id=c('Nom','groups'))
+
+melt_gp_com <- melt(select(df_com3, c("Nom", "acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail", "groups_com", "dpt")), id=c('Nom','groups_com',"dpt"))
+
+
+
+# on montre les groupes sous forme de geom_tile
+# TO DO : ameliorer la transparence en alpha
+# fct_reorder(indic, nb_adh, .desc = TRUE)
+gtile <- ggplot(melt_gp_sync2, aes(x=fct_reorder(Nom ,groups), y=variable, alpha=value, fill=factor(groups))) + geom_tile(color="gray50", size=0) + # +
+  scale_alpha("variable", range = c(0, 1), guide = 'none') + coord_equal() + scale_x_discrete(expand=c(0,0),position = "top") + scale_y_discrete(expand=c(0,0)) + theme_bw()+ 
+  theme(axis.text.x = element_text(angle=90, hjust=0, vjust=0, size=5),
+        legend.title = element_text(size = 8),legend.position = "bottom",
+        legend.text= element_text(size = 8),
+        panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank())  +
+  labs(fill="catgéorie d'adhérents", y="Indicateur", x="adhérent")
+
+# graphe en lollipop
+# https://stackoverflow.com/questions/42657949/creating-a-lollipop-chart-to-compare-groups-in-ggplot2
+
+# gloli <- ggplot(df_sync3)+
+#   geom_linerange(aes(x = fct_reorder(Nom ,groups),   ymin = 0, ymax = cotisation, colour = factor(groups)), 
+#                  position = position_dodge(width = 1))+
+#   geom_point(aes(x = fct_reorder(Nom ,groups), y = cotisation, colour = factor(groups)),
+#              position = position_dodge(width = 1)) + theme_bw()+
+#   theme(axis.text.x = element_blank())
+
+gloli <- ggplot(df_sync3)+
+  geom_bar(aes(x = fct_reorder(Nom ,groups),   y = cotisation, fill = factor(groups)),stat="identity", 
+                 position = position_dodge(width = 1))+
+  theme_bw()+
+  theme(axis.text.x = element_blank())
+
+ggarrange(gtile, gloli, common.legend = TRUE, nrow=2, ncol=1, align = "v", heights = c(1.8, 0.8))
+
+# https://ggplot2.tidyverse.org/reference/theme.html
+
+# ==== Nouvelle iteration ===========
+gcons <- ggplot(df_sync3)+
+  geom_bar(aes(x = fct_reorder(Nom ,groups),   y = nb_consult, fill = factor(groups)),stat="identity", 
+           position = position_dodge(width = 1))+
+  theme_bw() +  theme(axis.text.x = element_text(angle=90, hjust=0, vjust=0, size=8),
+                      legend.title = element_text(size = 8),legend.position = "top",
+                      legend.text= element_text(size = 8),axis.title.x= element_blank(),
+                      panel.grid.minor = element_blank(), legend.box = "horizontal",legend.key.height=1,
+                      legend.direction = "horizontal") + labs(y="Nombre Consultation", fill="Catégorie syndicat")
+# guides(color=guide_legend(direction="horizontal",order=1,title.position="left",title.hjust=0.5,nrow=1,label.position="center"))+
+#   theme(legend.position = "top")
+
+gcot <- ggplot(df_sync3)+
+  geom_bar(aes(x = fct_reorder(Nom ,groups),   y = cotisation, fill = factor(groups)),stat="identity", 
+           position = position_dodge(width = 1))+
+  theme_bw()+
+  theme(axis.text.x = element_blank(), axis.title.x= element_blank()) + labs(y="cotisation en €")
+
+ggarrange(gcons, gcot, common.legend = TRUE, nrow=2, ncol=1, align = "v", heights = c(1.8, 0.8))
+
+# export en jpg 1800, 1200
+
+# ==== TEST synthese de deux graphes en un seul ====
+melt_gp_sync3 <- melt(select(df_sync3, c("Nom", "acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail", "gdd", "groups", "cotisation")), id=c('Nom','groups', "cotisation"))
+
+ggplot(melt_gp_sync3, aes(x=fct_reorder(Nom ,groups), size=cotisation, y=variable, alpha=value,  color=factor(groups)))  + geom_point() + # +scale_size_area(max_size = 1.5)
+  scale_alpha("variable", range = c(0, 1), guide = 'none') + coord_equal() + scale_x_discrete(expand=c(0,0),position = "top") + scale_y_discrete(expand=c(0,0)) + theme_bw()+ 
+  theme(axis.text.x = element_text(angle=90, hjust=0, vjust=0, size=5),
+        legend.title = element_text(size = 8),legend.position = "bottom",
+        legend.text= element_text(size = 8),
+        panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank())  +
+  labs(fill="catgéorie d'adhérents", y="Indicateur", x="adhérent")
+
+# ===== iteration des communes de plus de 20 000 ====
+# on fait le matrice
+
+
+hc_com_gros <- hclust(dist(select(melt_com_gros, -names)), "ave")
+
+coul = brewer.pal(8, "Set1") 
+
+fviz_dend(hc_ex, k = 8,   lwd=0.45,               # Cut in four groups
+          cex = 0.5,   horiz=TRUE,              # label size
+          k_colors = coul,
+          color_labels_by_k = TRUE,  # color labels by groups
+          ggtheme = theme_void(),# Change theme
+          rect = TRUE , # ajouter un rectangle
+          # rect_lty = 2 ,# typo de trame pour le rectangle
+          labels_track_height = 0.1,
+          rect_border = coul
+)
+
+
+df_com_gros <- subset(df_analyse_all, college=="COMMUNES_3500_A_20000_HABITANTS_BOURGOGNE" ) # & nb_ser !=0
+
+# ============ graphes sur les communes ===========
+
+# on montre les groupes sous forme de geom_tile
+# TO DO : ameliorer la transparence en alpha
+# fct_reorder(indic, nb_adh, .desc = TRUE)
+str(melt_gp_com)
+
+# on faire un sondage aléatoire 
+table(melt_gp_com$groups_com)
+sond_com <- subset(melt_gp_com, groups_com!=8 & groups_com!=9 & groups_com!=10 ) %>% group_by(groups_com) %>% sample_n(50)
+# sond_com <- rbind(subset(melt_gp_com, groups_com==9), sond_com)
+sond_com <- bind_rows(subset(melt_gp_com, groups_com==9 & groups_com==10), sond_com)
+
+#
+ ggplot(sond_com, aes(x=fct_reorder(Nom ,groups_com), y=variable, alpha=value, fill=factor(groups_com))) + geom_tile( size=0) + # +
+  scale_alpha("variable", range = c(0, 1), guide = 'none') + coord_equal() + scale_x_discrete(expand=c(0,0),position = "top") + scale_y_discrete(expand=c(0,0)) + theme_bw()+ 
+  theme(axis.text.x = element_text(angle=90, hjust=0, vjust=0, size=5),
+        legend.title = element_text(size = 8),legend.position = "bottom",
+        legend.text= element_text(size = 8),
+        panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank())  +
+  labs(fill="catgéorie d'adhérents", y="Indicateur", x="adhérent")
+
+
+ ggplot(sond_com, aes(x=fct_reorder(Nom ,groups_com), y=variable, alpha=value, fill=factor(groups_com))) + geom_tile( size=0) + # +
+  scale_alpha("variable", range = c(0, 1), guide = 'none') + scale_x_discrete(expand=c(0,0),position = "top") + scale_y_discrete(expand=c(0,0)) + theme_bw()+ 
+  theme(axis.text.x = element_text(angle=90, hjust=0, vjust=0, size=5),
+        legend.title = element_text(size = 8),legend.position = "bottom",
+        legend.text= element_text(size = 8),
+        panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank())  +
+  labs(fill="catgéorie d'adhérents", y="Indicateur", x="adhérent") +
+   facet_wrap(dpt~., scales="free_x") # + coord_equal() 
+
+ 
+ ggplot(subset(melt_gp_com, dpt!="39" & dpt!="70" ),  aes(x=fct_reorder(Nom ,groups_com), y=variable, alpha=value, fill=factor(groups_com))) + geom_tile( size=0) + # +
+   scale_alpha("variable", range = c(0, 1), guide = 'none') + scale_x_discrete(expand=c(0,0),position = "top") + scale_y_discrete(expand=c(0,0)) + theme_bw()+ 
+   theme(axis.text.x = element_text(angle=90, hjust=0, vjust=0, size=5),
+         legend.title = element_text(size = 8),legend.position = "bottom",
+         legend.text= element_text(size = 8),
+         panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank())  +
+   labs(fill="catgéorie d'adhérents", y="Indicateur", x="adhérent") +
+   facet_wrap(dpt~., scales="free_x") # + coord_equal() 
+ 
+
+ ggplot(subset(melt_gp_com, dpt!="39" & dpt!="70" ),  aes(x=fct_reorder(Nom ,groups_com), y=variable, alpha=value, fill=factor(groups_com))) + geom_tile( size=0) + # +
+   scale_alpha("variable", range = c(0, 1), guide = 'none') + scale_x_discrete(expand=c(0,0),position = "top") + scale_y_discrete(expand=c(0,0)) + theme_bw()+ 
+   theme(axis.text.x = element_text(angle=90, hjust=0, vjust=0, size=5),
+         legend.title = element_text(size = 8),legend.position = "bottom",
+         legend.text= element_text(size = 8),
+         panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank())  +
+   labs(fill="catgéorie d'adhérents", y="Indicateur", x="adhérent") +
+   facet_wrap(groups_com~., scales="free_x") # + coord_equal() 
+ 
+melt_com_gros <- melt(select(df_com_gros, c("Nom", "acte", "flux_comp", "consult", "site_web", "demand_tf", "boite_mail", "gdd", "groups", "cotisation")), id=c('Nom','groups', "cotisation"))
+
+# ==== inscrire le dénomination des groupes  ====
+# creation d un champ determinant les groupes en francais
+df_com3$label_group <- df_com3$groups_com
+
+
+myfun_com <- function(x) {
+  switch(x,
+         '1'='Actes et Consult et autres',
+         '2'='Actes et Site Web, voir (consult, demande_tf)',
+         '3' = 'Acte, Sites, Messagerie, (consult, flux comp)',
+         '4' = 'Acte, Flux compt, Sites Web (consult, demande tf)',
+         '5' = 'Site Web (consult)',
+         '6' = 'Site Web, Demande TF, Messagerie, (actes...)',
+         '7' = 'Site Web, Messagerie, (Autres)',
+         '8' = 'Consult, Site Web, Demande (flux, messagerie)',
+         '9' = 'ACte, Consult, Demande',
+         '10' = 'Pack 4 : Concsult, Site Web, Demande, Messagerie'
+       
+  )
+}
+
+
+# on lance la fonction pour changer les valeurs
+df_com3$label_group = sapply(df_com3$label_group, myfun_com)
+
+# représentation des groupes dans le college des communes de - 3500 hab
+ggplot(data=df_com3, aes(x = fct_infreq(df_com3$label_group), fill=as.factor(df_com3$label_group))) + geom_bar()# +
+  geom_text(color = "white", stat='count', aes(label=..count..), vjust=1.5)
+
