@@ -20,6 +20,21 @@ Connex<-odbcConnect(dsn="bd_faune_flore",uid="util",pwd="csnp")
 # Voir les tables de la connexion
 sqlTables(Connex)
 
+# telechargement des donnees shp et les ouvrir -----------------------------------
+# https://stackoverflow.com/questions/18967722/download-and-read-shapefile-function-in-r
+dlshape=function(shploc, shpfile) {
+  temp=tempfile()
+  download.file(shploc, temp)
+  unzip(temp)
+  shp.data <- sapply(".", function(f) {
+    fp <- file.path(temp, f)
+    return(readOGR(".",shpfile))
+  })
+}
+
+foncier = dlshape(shploc="https://trouver.ternum-bfc.fr/dataset/38548b3f-83eb-4e4f-8a1d-b11ba8334f7c/resource/68f7894e-02ec-455c-98eb-52c54e7a6585/download/r_foncier_economique_aerbfc_r27_poly_lib.zip", "r_foncier_economique_aerbfc_r27_poly_lib")
+
+
 
 # Pour postgreSQL
 # http://neocarto.hypotheses.org/1186
