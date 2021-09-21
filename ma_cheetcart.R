@@ -20,6 +20,31 @@ Connex<-odbcConnect(dsn="bd_faune_flore",uid="util",pwd="csnp")
 # Voir les tables de la connexion
 sqlTables(Connex)
 
+# Chargement plusieurs fichiers et compilation des fichiers ----------------------------------
+# https://michaelinom.medium.com/how-to-combine-all-csv-files-from-the-same-folder-into-one-data-frame-automatically-with-r-1775876a876c
+  setwd("V:/07_IDÃ©O/12_Donnees/demandes/gip_com_num/Fichiers contacts ComNum/Dpt 21/")
+  list.files()
+  # test unitaire
+  # X21J <- read_excel("V:/07_IDÃ©O/12_Donnees/demandes/gip_com_num/Fichiers contacts ComNum/Dpt 21/21J.xlsx")
+  # on definit la liste des fichiersa prendre
+  fichiers <- Filter(function(x) grepl("21", x), list.files())
+  # https://stackoverflow.com/questions/18028225/r-list-files-with-multiple-conditions/38850156
+  # on rassemble le tout
+  d21 <- ldply(fichiers, read_excel)
+  dim(d21) # 583
+
+  setwd("V:/07_IDÃ©O/12_Donnees/demandes/gip_com_num/Fichiers contacts ComNum/Dpt 39/")
+  fichiers <- Filter(function(x) grepl("39", x), list.files())
+  d39 <- ldply(fichiers, read_excel)
+
+  setwd("V:/07_IDÃ©O/12_Donnees/demandes/gip_com_num/Fichiers contacts ComNum/Dpt 58/")
+  fichiers <- Filter(function(x) grepl("58", x), list.files())
+  d58 <- ldply(fichiers, read_excel)
+
+  df_reg <- bind_rows(d21,d39,d58)
+  View(df_reg)
+
+
 # telechargement des donnees shp et les ouvrir -----------------------------------
 # https://stackoverflow.com/questions/18967722/download-and-read-shapefile-function-in-r
 dlshape=function(shploc, shpfile) {
