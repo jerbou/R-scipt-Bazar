@@ -148,6 +148,20 @@ recap_cotis_coll <- recap_cotis_coll %>%
 
 # graphes interactifs -----------------------------------------------------
 
+
+
+graph_int3 <- top10_prod %>% hchart(type= "bar", hcaes(x=reorder(PRODUCTEUR_NOM,-nb_dataset), y=nb_dataset, group=reorder(typologie,-nb_dataset)),borderColor = "black",stacking = "normal", size=30) %>%
+  hc_colors(brewer.pal(n = length(unique(nb_dataset_typo$typologie)), name = "Set1")) %>%
+  hc_xAxis(categories = top10_prod$PRODUCTEUR_NOM , title = list(text = "Producteur")) %>% # categories est la bonne solution pour ordonner par la ligne souhtaite et pas par le groupe
+  hc_yAxis(title = list(text = "Nombre de jeux de données"))%>%
+  hc_caption(text = "ARNia, Mars 2022", align="right") %>%
+  hc_title(text="<b>Top 10 des producteurs \n les plus prolifiques</b>", align="center")
+# ajouter de la balise categoire permet d ordonner de casser la priorite sur le groupe !!!!!!
+saveWidget(graph_int3, file="graph_int3_top10_prod_2022.html") # LA BONNE SOLUTION !!
+
+
+
+
 chart_cotis_dep <- recap_cotis_coll_dep %>% hchart('column',stacking = "normal", hcaes(x= cotisation_classes_ttc, y = n, group=CodeDepartement )) %>%
   hc_colors(brewer.pal(n = length(unique(recap_cotis_coll_dep$CodeDepartement)), name = "Set1")) %>%
   hc_xAxis(categories = recap_cotis$cotisation_classes_ttc)%>% 
