@@ -112,3 +112,15 @@ hchart(df_bfc$analyse_adressage_ratio)
 hchart(df_bfc$nb_numeros, type='hist')
 
 hchart(jenks)
+
+
+# pie charte avec modification du tooltip
+artif_pie <- recap_artif %>%
+  hchart(type = "pie", hcaes(x = type , y = surface), stacking = "normal", tooltip = list(pointFormat = "{point.surface} ha")) %>%
+  hc_title(text = "<b>Part d'arficialisation des ZAE</b>, données au Avril 2022",align = "center") %>%
+  hc_colors(c("#EEE8CD", "#00CD00" )) %>%
+  hc_credits(enabled=TRUE, text="AER BFC, 2022", style=list(fontSize = "10px")) %>%
+  hc_xAxis(title = list(text = "département"), wordBreak= "break-all") 
+
+# custmisation du tooltip
+# https://stackoverflow.com/questions/46953400/r-highcharter-tooltip-customization
