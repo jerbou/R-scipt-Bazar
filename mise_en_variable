@@ -2,4 +2,6 @@ library(lubridate)
 
 # pour afficher et mettre en objet le mois en cours
 lubridate::month(date(now()), label=TRUE, abbr = FALSE)
+# et le sockter dans un objet !
+mois_actuel <- lubridate::month(date(now()), label=TRUE, abbr = FALSE)
 
