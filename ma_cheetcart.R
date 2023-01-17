@@ -126,6 +126,15 @@ df3<-subset(df2,select = -c(releve,ferti,fauche,MAEt))
 # Selection d'un tableau avec certaine colonnes
 Gbin2 <-Gbin1[c("individu","depX","depY","arX","arY","ind_pos.x","ind_pos.y")]
 
+# selection d un dataframe a partir d un selection de valeur d un autre dataframe
+    # creation du df selon de criteres, ici le plus de ligne et on prend le tom 20
+top20 <- df_cat %>% group_by(organization_id, organization) %>% count() %>% arrange(-n) %>% head(20)
+    # faire un liste a partir un facteur c(top20$organization_id)
+df_cat20 <- df_cat %>% filter(organization_id %in% c(top20$organization_id))
+                   
+                     
+                     
+                     
 # On nettoie les NA
 # On nettoie
 e41[is.na(e41)]<-0
