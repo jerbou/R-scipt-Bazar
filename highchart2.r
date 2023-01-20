@@ -103,6 +103,13 @@ df_bfc %>%
 
 
 
+# tooltip
+DF3 %>%
+  hchart(type = "pie", hcaes(x =label_annees , y = pourcent), tooltip=list(pointFormat = "<b> {point.pourcent} % </b>")) %>%
+  hc_colors(c("#BBE7D6", "#FEBFCC", "#FEEDB7")) # %>%
+# aide sur tooltip / survol 
+# https://stackoverflow.com/questions/46953400/r-highcharter-tooltip-customization
+
 
 # x <- diamonds$price
 # hchart(x)
