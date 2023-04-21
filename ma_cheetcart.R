@@ -32,7 +32,7 @@ sqlTables(Connex)
   # on rassemble le tout
   d21 <- ldply(fichiers, read_excel)
   dim(d21) # 583
-
+  
   setwd("V:/07_IDÃ©O/12_Donnees/demandes/gip_com_num/Fichiers contacts ComNum/Dpt 39/")
   fichiers <- Filter(function(x) grepl("39", x), list.files())
   d39 <- ldply(fichiers, read_excel)
@@ -43,6 +43,19 @@ sqlTables(Connex)
 
   df_reg <- bind_rows(d21,d39,d58)
   View(df_reg)
+  # on regarde la liste des fichiers presents
+  list.files()
+
+  # on cree des objets listant les fichiers de meme type
+  fichiers_plv <- Filter(function(x) grepl("CAP_PLV_", x), list.files())
+  fichiers_res <- Filter(function(x) grepl("CAP_RES_", x), list.files())
+
+  # https://stackoverflow.com/questions/18028225/r-list-files-with-multiple-conditions/38850156
+  # on rassemble le tout
+  cap_plv_2022 <- ldply(fichiers_plv, read.table, sep=",", header=TRUE, .progress = "text")
+  cap_res_2022 <- ldply(fichiers_res, read.table, sep=",", header=TRUE, .progress = "text")   
+                     
+  
 
 
 # telechargement des donnees shp et les ouvrir -----------------------------------
