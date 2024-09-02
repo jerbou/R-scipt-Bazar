@@ -32,7 +32,14 @@ sqlTables(Connex)
   # on rassemble le tout
   d21 <- ldply(fichiers, read_excel)
   dim(d21) # 583
-  
+
+# obtenir une liste de fichiers pour un extension specifique
+# the specified pattern 
+fnames <- Sys.glob("*.shp") 
+                     
+                     # source :                     
+# https://www.geeksforgeeks.org/list-all-files-with-specific-extension-in-r/
+                     
   setwd("V:/07_IDÃ©O/12_Donnees/demandes/gip_com_num/Fichiers contacts ComNum/Dpt 39/")
   fichiers <- Filter(function(x) grepl("39", x), list.files())
   d39 <- ldply(fichiers, read_excel)
