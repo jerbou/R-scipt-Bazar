@@ -1,0 +1,32 @@
+# chargement des librairies
+
+library(sf)
+library(tidyverse)
+library(writexl)
+
+# on definit le chemin
+setwd("chemin vers les fichiers")
+# # list all the file names of
+
+# the specified pattern
+fnames <- Sys.glob("*.shp")
+
+
+# boucle qui va generer les fichiers --------------------------------------
+# la boucle va generer autant de xlsx que de fichiers
+# prerequis avec un champ LIBELLE et surface
+
+for (i in 1:length(fnames)) {
+  shp_temp <- read_sf(dsn = "chemin vers fichiers", layer = fnames[i])
+  tab_shp_temp <- shp_temp %>%
+    group_by(LIBELLE) %>%
+    summarise(surface_total_ha = (sum(surface)) / 10000)
+  # on enleve la geom
+  tab_shp_temp <- sf::st_drop_geometry(tab_shp_temp)
+  # on ajoute une colonne pourcentage
+  tab_shp_temp$pct <- (tab_shp_temp$surface_total_ha / sum(tab_shp_temp$surface_total_ha)) * 100
+  # on definit le nom de la feuille
+  sheet_name <- paste(fnames[i], "_tab", sep = "_")
+  # on ecrit le fichier avec le nom de feuille dynanimque
+  writexl::write_xlsx(setNames(list(tab_shp_temp), sheet_name), paste(fnames[i], "tab", ".xlsx", sep = ""))
+}
