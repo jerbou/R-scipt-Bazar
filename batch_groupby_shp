@@ -1,3 +1,7 @@
+# boucle R qui va generer les fichiers --------------------------------------
+# la boucle va generer autant de xlsx que de fichiers
+# prerequis avec un champ LIBELLE et surface
+
 # chargement des librairies
 
 library(sf)
@@ -12,9 +16,7 @@ setwd("chemin vers les fichiers")
 fnames <- Sys.glob("*.shp")
 
 
-# boucle qui va generer les fichiers --------------------------------------
-# la boucle va generer autant de xlsx que de fichiers
-# prerequis avec un champ LIBELLE et surface
+
 
 for (i in 1:length(fnames)) {
   shp_temp <- read_sf(dsn = "chemin vers fichiers", layer = fnames[i])
